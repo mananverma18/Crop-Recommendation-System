@@ -1,28 +1,239 @@
+/* --- General Styling --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+    --primary-color: #2ecc71;
+    --secondary-color: #34495e;
+    --background-color: #f4f6f9;
+    --card-bg-color: #ffffff;
+    --text-color: #333;
+    --border-color: #e0e0e0;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
 body {
-    background: linear-gradient(to right, #e0f7fa, #b2ebf2);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
 }
 
-.card {
-    background-color: white;
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
 }
 
-h2, h3 {
-    color: #0d6efd;
+header {
+    text-align: center;
+    margin-bottom: 40px;
 }
 
-input.form-control {
-    border-radius: 10px;
+header h1 {
+    font-weight: 700;
+    color: var(--secondary-color);
 }
 
-button.btn-success {
-    border-radius: 10px;
-    font-weight: bold;
+/* --- Cards --- */
+.form-card, .result-card, .eda-section {
+    background-color: var(--card-bg-color);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: var(--shadow);
+    margin-bottom: 30px;
+}
+
+/* --- Form --- */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.btn-predict {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-top: 30px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-predict:hover {
+    background-color: #27ae60;
+}
+
+/* --- Results Section --- */
+.hidden {
+    display: none;
+}
+
+#loading-spinner {
+    text-align: center;
+    padding: 40px;
+}
+
+.spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid var(--primary-color);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.result-card h3 {
+    color: var(--secondary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Top Recommendations List */
+#recommendations-list {
+    list-style: none;
+    padding: 0;
+}
+
+.rec-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
     font-size: 1.1rem;
 }
-
-.alert-info {
-    background-color: #d1ecf1;
-    color: #0c5460;
+.rec-item .rank {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-right: 15px;
+}
+.rec-item .crop-name {
+    font-weight: 600;
+    width: 120px;
+}
+.confidence-bar-container {
+    flex-grow: 1;
+    height: 20px;
+    background-color: #e0e0e0;
     border-radius: 10px;
+    margin: 0 15px;
+    overflow: hidden;
+}
+.confidence-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+}
+.confidence-text {
+    font-weight: 600;
+}
+
+/* Soil Health List */
+#soil-health-list {
+    list-style: none;
+    padding: 0;
+}
+#soil-health-list li {
+    margin-bottom: 10px;
+}
+.level-low { color: #e74c3c; font-weight: 600; }
+.level-optimal { color: #2ecc71; font-weight: 600; }
+.level-high { color: #f39c12; font-weight: 600; }
+.level-acidic { color: #9b59b6; font-weight: 600; }
+.level-alkaline { color: #3498db; font-weight: 600; }
+
+
+/* --- EDA & Tabs Section --- */
+.eda-section h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.eda-section > p {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #777;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    border-bottom: 3px solid transparent;
+    transition: border-color 0.3s, color 0.3s;
+}
+
+.tab-link.active, .tab-link:hover {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+    padding: 20px;
+    text-align: center;
+}
+
+.tab-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #999;
 }

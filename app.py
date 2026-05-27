@@ -1,52 +1,63 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pickle
 import numpy as np
+import pandas as pd
 
 app = Flask(__name__)
 
-# Load trained model
+# --- Load Model and Scaler ---
+# Load the best model saved from the notebook
 with open("crop_model.pkl", "rb") as f:
     model = pickle.load(f)
 
-# OPTIONAL: load scaler if it exists
-try:
-    with open("scaler.pkl", "rb") as f:
-        scaler = pickle.load(f)
-except:
-    scaler = None
+# Load the scaler saved from the notebook
+with open("scaler.pkl", "rb") as f:
+    scaler = pickle.load(f)
 
-# Crop mapping (MATCHES TRAINING)
-crop_map = {
-    0: "Apple",
-    1: "Banana",
-    2: "Blackgram",
-    3: "Chickpea",
-    4: "Coconut",
-    5: "Coffee",
-    6: "Cotton",
-    7: "Grapes",
-    8: "Jute",
-    9: "Maize",
-    10: "Mango",
-    11: "Mothbeans",
-    12: "Mungbean",
-    13: "Muskmelon",
-    14: "Orange",
-    15: "Papaya",
-    16: "Pigeonpeas",
-    17: "Pomegranate",
-    18: "Rice",
-    19: "Watermelon"
+# --- Fertilizer Recommendation Logic (Rule-Based) ---
+# This dictionary maps crops to fertilizer recommendations.
+# These are simplified recommendations for demonstration purposes.
+fertilizer_recommendations = {
+    'rice': 'High Nitrogen (Urea), Phosphorus, and Potassium.',
+    'maize': 'High Nitrogen (Urea/Ammonium Nitrate), Phosphorus, and Potassium.',
+    'chickpea': 'Low Nitrogen, High Phosphorus (DAP), and Potassium.',
+    'kidneybeans': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'pigeonpeas': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'mothbeans': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'mungbean': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'blackgram': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'lentil': 'Low Nitrogen, High Phosphorus, and Potassium.',
+    'pomegranate': 'Balanced NPK, with emphasis on Potassium during fruit development.',
+    'banana': 'Very High Potassium, High Nitrogen.',
+    'mango': 'Balanced NPK, reduce Nitrogen before flowering.',
+    'grapes': 'Balanced NPK, with extra Potassium.',
+    'watermelon': 'High Nitrogen and Potassium.',
+    'muskmelon': 'High Nitrogen and Potassium.',
+    'apple': 'Balanced NPK, with Boron.',
+    'orange': 'High Nitrogen and Potassium, plus micronutrients like Zinc and Iron.',
+    'papaya': 'High Nitrogen and Phosphorus.',
+    'coconut': 'High Potassium and Chlorine.',
+    'cotton': 'High Nitrogen and Potassium.',
+    'jute': 'High Nitrogen.',
+    'coffee': 'High Nitrogen, balanced with Phosphorus and Potassium.'
 }
 
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET"])
 def index():
-    prediction_name = None
-    prediction_no = None
+    """Render the main page."""
+    return render_template("index.html")
 
-    if request.method == "POST":
-        sample = np.array([[
+@app.route("/predict", methods=["POST"])
+def predict():
+    """
+    Handle the prediction request.
+    Processes form data, makes predictions, and returns results as JSON.
+    """
+    # --- 1. Get and Process Input Data ---
+    try:
+        # Get data from the form
+        form_data = [
             float(request.form["N"]),
             float(request.form["P"]),
             float(request.form["K"]),
@@ -54,20 +65,53 @@ def index():
             float(request.form["humidity"]),
             float(request.form["ph"]),
             float(request.form["rainfall"])
-        ]])
+        ]
+        
+        # Convert to a NumPy array and scale it
+        sample = np.array([form_data])
+        sample_scaled = scaler.transform(sample)
 
-        if scaler is not None:
-            sample = scaler.transform(sample)
+    except (KeyError, ValueError):
+        return jsonify({"error": "Invalid input. Please fill all fields with numeric values."}), 400
 
-        prediction_no = int(model.predict(sample)[0])
-        prediction_name = model.classes_[prediction_no]  # 🔥 FIX
+    # --- 2. Make Top-3 Predictions ---
+    # Use predict_proba to get confidence scores for all classes
+    probabilities = model.predict_proba(sample_scaled)[0]
+    
+    # Get the top 3 predictions
+    top3_indices = np.argsort(probabilities)[-3:][::-1]
+    top3_crops = model.classes_[top3_indices]
+    top3_confidences = probabilities[top3_indices]
 
-    return render_template(
-    "index.html",
-    prediction_name=prediction_name,
-    prediction_no=prediction_no,
-    crop_map=crop_map   # ✅ THIS FIXES EVERYTHING
-)
+    top_recommendations = [
+        {"crop": crop, "confidence": round(conf * 100, 2)}
+        for crop, conf in zip(top3_crops, top3_confidences)
+    ]
+
+    # --- 3. Soil Health Analysis ---
+    n, p, k, ph = form_data[0], form_data[1], form_data[2], form_data[5]
+    
+    soil_health = {
+        "N": "Low" if n < 50 else "Optimal" if 50 <= n <= 100 else "High",
+        "P": "Low" if p < 30 else "Optimal" if 30 <= p <= 60 else "High",
+        "K": "Low" if k < 30 else "Optimal" if 30 <= k <= 60 else "High",
+        "pH": "Acidic" if ph < 6.5 else "Optimal" if 6.5 <= ph <= 7.5 else "Alkaline"
+    }
+
+    # --- 4. Fertilizer Recommendation ---
+    # Get fertilizer recommendation for the top predicted crop
+    top_crop_name = top_recommendations[0]['crop'].lower()
+    fertilizer_info = fertilizer_recommendations.get(top_crop_name, "No specific recommendation available.")
+
+    # --- 5. Return Results as JSON ---
+    return jsonify({
+        "top_recommendations": top_recommendations,
+        "soil_health": soil_health,
+        "fertilizer_recommendation": {
+            "crop": top_recommendations[0]['crop'],
+            "recommendation": fertilizer_info
+        }
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
